@@ -1,6 +1,11 @@
 import '@/app/ui/global.css';
 import { inter } from '@/app/ui/fonts';
 
+export const metadata = {
+  title: 'Acme Dashboard',
+  description: 'Next.js App Router Dashboard',
+};
+
 export default function RootLayout({
   children,
 }: {

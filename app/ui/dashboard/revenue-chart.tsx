@@ -2,64 +2,63 @@ import { generateYAxis } from '@/app/lib/utils';
 import { CalendarIcon } from '@heroicons/react/24/outline';
 import { lusitana } from '@/app/ui/fonts';
 import { Revenue } from '@/app/lib/definitions';
-
-// This component is representational only.
-// For data visualization UI, check out:
-// https://www.tremor.so/
-// https://www.chartjs.org/
-// https://airbnb.io/visx/
-
-export default async function RevenueChart({
+export default function RevenueChart({
   revenue,
 }: {
   revenue: Revenue[];
 }) {
   const chartHeight = 350;
-  // NOTE: Uncomment this code in Chapter 7
+  const { yAxisLabels, topLabel } = generateYAxis(revenue);
 
-  // const { yAxisLabels, topLabel } = generateYAxis(revenue);
-
-  // if (!revenue || revenue.length === 0) {
-  //   return <p className="mt-4 text-gray-400">No data available.</p>;
-  // }
+  if (!revenue || revenue.length === 0) {
+    return <p className="mt-4 text-gray-400">No data available.</p>;
+  }
 
   return (
-    <div className="w-full md:col-span-4">
+    <div className="md:col-span-2">
       <h2 className={`${lusitana.className} mb-4 text-xl md:text-2xl`}>
         Recent Revenue
       </h2>
-      {/* NOTE: Uncomment this code in Chapter 7 */}
 
-      {/* <div className="rounded-xl bg-gray-50 p-4">
-        <div className="sm:grid-cols-13 mt-0 grid grid-cols-12 items-end gap-2 rounded-md bg-white p-4 md:gap-4">
+      <div className="rounded-xl bg-gray-50 p-4">
+        <div className="flex gap-4">
+          {/* Y Axis - ADDED mb-6 to align $0K with the bars instead of the text */}
           <div
-            className="mb-6 hidden flex-col justify-between text-sm text-gray-400 sm:flex"
-            style={{ height: `${chartHeight}px` }}
+            className="hidden sm:flex flex-col justify-between text-sm text-gray-400 mb-6" 
+            style={{ height: chartHeight }}
           >
             {yAxisLabels.map((label) => (
               <p key={label}>{label}</p>
             ))}
           </div>
 
-          {revenue.map((month) => (
-            <div key={month.month} className="flex flex-col items-center gap-2">
+          {/* Bars container */}
+          <div
+            className="flex flex-1 items-end gap-3"
+            style={{ height: chartHeight }}
+          >
+            {revenue.map((month) => (
               <div
-                className="w-full rounded-md bg-blue-300"
-                style={{
-                  height: `${(chartHeight / topLabel) * month.revenue}px`,
-                }}
-              ></div>
-              <p className="-rotate-90 text-sm text-gray-400 sm:rotate-0">
-                {month.month}
-              </p>
-            </div>
-          ))}
+                key={month.month}
+                className="flex flex-col items-center gap-2"
+              >
+                <div
+                  className="w-6 rounded-md bg-blue-300"
+                  style={{
+                    height: `${(month.revenue / topLabel) * chartHeight}px`,
+                  }}
+                />
+                <p className="text-xs text-gray-400">{month.month}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex items-center pb-2 pt-6">
-          <CalendarIcon className="h-5 w-5 text-gray-500" />
-          <h3 className="ml-2 text-sm text-gray-500 ">Last 12 months</h3>
+
+        <div className="mt-6 flex items-center text-gray-500">
+          <CalendarIcon className="h-5 w-5" />
+          <span className="ml-2 text-sm">Last 12 months</span>
         </div>
-      </div> */}
+      </div>
     </div>
   );
 }
