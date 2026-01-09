@@ -1,6 +1,14 @@
 import postgres from 'postgres';
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+if (!process.env.DATABASE_URL_UNPOOLED) {
+  throw new Error('DATABASE_URL_UNPOOLED is missing');
+}
+
+const sql = postgres(process.env.DATABASE_URL_UNPOOLED, {
+  ssl: 'require',
+  max: 1,
+  connect_timeout: 15,
+});
 
 export async function GET() {
   try {

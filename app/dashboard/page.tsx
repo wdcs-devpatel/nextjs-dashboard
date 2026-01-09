@@ -3,6 +3,7 @@ import CardWrapper from '@/app/ui/dashboard/cards';
 import { fetchLatestInvoices, fetchRevenue } from '@/app/lib/data';
 import LatestInvoices from '@/app/ui/dashboard/latest-invoices';
 import RevenueChart from '@/app/ui/dashboard/revenue-chart';
+export const runtime = 'nodejs';
 
 export default async function Page() {
   const revenue = await fetchRevenue();
