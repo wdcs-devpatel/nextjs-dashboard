@@ -32,7 +32,7 @@ const sql = postgres(process.env.DATABASE_URL_UNPOOLED, {
 ================================ */
 
 export async function fetchRevenue() {
-  noStore();
+  noStore(); // Prevent static caching
   try {
     return await sql<Revenue[]>`
       SELECT month, revenue
@@ -73,6 +73,7 @@ export async function fetchLatestInvoices() {
 export async function fetchCardData() {
   noStore();
   try {
+    // Parallelize queries for better performance
     const [invoiceCount, customerCount, invoiceStatus] =
       await Promise.all([
         sql`SELECT COUNT(*) FROM invoices`,
@@ -108,6 +109,7 @@ export async function fetchFilteredInvoices(query: string, currentPage: number) 
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
 
   try {
+    // ILIKE ensures case-insensitive search
     return await sql<InvoicesTable[]>`
       SELECT
         invoices.id,
@@ -165,6 +167,7 @@ export async function fetchInvoiceById(id: string) {
       WHERE id = ${id};
     `;
     if (!data[0]) return null;
+    // Database stores amount in cents; convert to dollars for the UI
     return { ...data[0], amount: data[0].amount / 100 };
   } catch (error) {
     console.error('Database Error:', error);
