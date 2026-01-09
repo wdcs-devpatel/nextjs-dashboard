@@ -1,12 +1,9 @@
 import Image from 'next/image';
 import { lusitana } from '@/app/ui/fonts';
 import Search from '@/app/ui/search';
-import {
-  CustomersTableType,
-  FormattedCustomersTable,
-} from '@/app/lib/definitions';
+import { FormattedCustomersTable } from '@/app/lib/definitions';
 
-export default async function CustomersTable({
+export default function CustomersTable({
   customers,
 }: {
   customers: FormattedCustomersTable[];
@@ -21,6 +18,7 @@ export default async function CustomersTable({
         <div className="overflow-x-auto">
           <div className="inline-block min-w-full align-middle">
             <div className="overflow-hidden rounded-md bg-gray-50 p-2 md:pt-0">
+              {/* Mobile View */}
               <div className="md:hidden">
                 {customers?.map((customer) => (
                   <div
@@ -62,6 +60,8 @@ export default async function CustomersTable({
                   </div>
                 ))}
               </div>
+
+              {/* Desktop View */}
               <table className="hidden min-w-full rounded-md text-gray-900 md:table">
                 <thead className="rounded-md bg-gray-50 text-left text-sm font-normal">
                   <tr>
