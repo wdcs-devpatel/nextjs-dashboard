@@ -17,7 +17,6 @@ import { formatCurrency } from './utils';
    DATABASE CONNECTION
 ================================ */
 
-// Use DATABASE_URL_UNPOOLED to avoid pgbouncer issues during local dev
 const connectionString = process.env.DATABASE_URL_UNPOOLED;
 
 if (!connectionString) {
@@ -26,9 +25,9 @@ if (!connectionString) {
 
 const sql = postgres(connectionString, {
   ssl: 'require',
-  max: 10,           // Increased for better concurrency
-  idle_timeout: 20,  // Keeps connection alive slightly longer
-  connect_timeout: 30, // Handles Neon database "wake up" time (Cold Start)
+  max: 10,
+  idle_timeout: 20,
+  connect_timeout: 30,
 });
 
 /* ================================
@@ -179,8 +178,8 @@ export async function fetchInvoiceById(id: string) {
         invoices.amount,
         invoices.status
       FROM invoices
-      WHERE invoices.id = ${id};
-    `;
+      WHERE invoices.id = ${id}
+    `; // Removed the semicolon from inside the string here
 
     const invoice = data.map((invoice) => ({
       ...invoice,

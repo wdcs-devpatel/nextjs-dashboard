@@ -10,6 +10,7 @@ const sql = postgres(process.env.DATABASE_URL_UNPOOLED!, { ssl: 'require' });
 
 async function getUser(email: string): Promise<User | undefined> {
   try {
+    // Added backticks here
     const user = await sql<User[]>`SELECT * FROM users WHERE email=${email}`;
     return user[0];
   } catch (error) {
