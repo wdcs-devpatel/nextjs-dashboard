@@ -1,4 +1,6 @@
-import bcrypt from 'bcrypt';
+import 'server-only';
+
+import bcrypt from 'bcryptjs';
 import postgres from 'postgres';
 import { users, customers, invoices, revenue } from '../lib/placeholder-data';
 
