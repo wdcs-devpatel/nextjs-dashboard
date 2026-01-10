@@ -4,20 +4,25 @@ import bcrypt from 'bcryptjs';
 import postgres from 'postgres';
 import { users, customers, invoices, revenue } from '../lib/placeholder-data';
 
-const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+// ✅ Use the SAME env var everywhere (match Vercel settings)
+const sql = postgres(process.env.DATABASE_URL_UNPOOLED!, {
+  ssl: 'require',
+});
 
 export async function GET() {
   try {
-    // Enable UUIDs
+    // Enable UUID extension
     await sql`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`;
 
-    // Drop tables (DEV ONLY)
+    // ⚠️ DEV ONLY: drop existing tables
     await sql`DROP TABLE IF EXISTS invoices`;
     await sql`DROP TABLE IF EXISTS customers`;
     await sql`DROP TABLE IF EXISTS revenue`;
     await sql`DROP TABLE IF EXISTS users`;
 
-    // Users
+    // ======================
+    // USERS
+    // ======================
     await sql`
       CREATE TABLE users (
         id UUID PRIMARY KEY,
@@ -28,14 +33,17 @@ export async function GET() {
     `;
 
     for (const user of users) {
-      const hashed = await bcrypt.hash(user.password, 10);
+      const hashedPassword = await bcrypt.hash(user.password, 10);
+
       await sql`
         INSERT INTO users (id, name, email, password)
-        VALUES (${user.id}, ${user.name}, ${user.email}, ${hashed});
+        VALUES (${user.id}, ${user.name}, ${user.email}, ${hashedPassword});
       `;
     }
 
-    // Customers
+    // ======================
+    // CUSTOMERS
+    // ======================
     await sql`
       CREATE TABLE customers (
         id UUID PRIMARY KEY,
@@ -48,11 +56,18 @@ export async function GET() {
     for (const customer of customers) {
       await sql`
         INSERT INTO customers (id, name, email, image_url)
-        VALUES (${customer.id}, ${customer.name}, ${customer.email}, ${customer.image_url});
+        VALUES (
+          ${customer.id},
+          ${customer.name},
+          ${customer.email},
+          ${customer.image_url}
+        );
       `;
     }
 
-    // Invoices
+    // ======================
+    // INVOICES
+    // ======================
     await sql`
       CREATE TABLE invoices (
         id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
@@ -66,11 +81,18 @@ export async function GET() {
     for (const invoice of invoices) {
       await sql`
         INSERT INTO invoices (customer_id, amount, status, date)
-        VALUES (${invoice.customer_id}, ${invoice.amount}, ${invoice.status}, ${invoice.date});
+        VALUES (
+          ${invoice.customer_id},
+          ${invoice.amount},
+          ${invoice.status},
+          ${invoice.date}
+        );
       `;
     }
 
-    // Revenue
+    // ======================
+    // REVENUE
+    // ======================
     await sql`
       CREATE TABLE revenue (
         month TEXT PRIMARY KEY,
@@ -85,9 +107,15 @@ export async function GET() {
       `;
     }
 
-    return Response.json({ message: 'Database seeded successfully' });
+    return Response.json({
+      message: 'Database seeded successfully ✅',
+    });
   } catch (error) {
     console.error('SEED ERROR:', error);
-    return Response.json({ error: String(error) }, { status: 500 });
+
+    return Response.json(
+      { error: String(error) },
+      { status: 500 }
+    );
   }
 }
