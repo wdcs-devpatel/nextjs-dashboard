@@ -1,3 +1,4 @@
+import 'server-only'; // Ensures this file never runs on the client/browser
 import postgres from 'postgres';
 import { unstable_noStore as noStore } from 'next/cache';
 
@@ -16,15 +17,18 @@ import { formatCurrency } from './utils';
    DATABASE CONNECTION
 ================================ */
 
-if (!process.env.DATABASE_URL_UNPOOLED) {
-  throw new Error('DATABASE_URL_UNPOOLED is not defined');
+// Use DATABASE_URL_UNPOOLED to avoid pgbouncer issues during local dev
+const connectionString = process.env.DATABASE_URL_UNPOOLED;
+
+if (!connectionString) {
+  throw new Error('DATABASE_URL_UNPOOLED is not defined in your .env file');
 }
 
-const sql = postgres(process.env.DATABASE_URL_UNPOOLED, {
+const sql = postgres(connectionString, {
   ssl: 'require',
-  max: 1,
-  idle_timeout: 5,
-  connect_timeout: 15,
+  max: 10,           // Increased for better concurrency
+  idle_timeout: 20,  // Keeps connection alive slightly longer
+  connect_timeout: 30, // Handles Neon database "wake up" time (Cold Start)
 });
 
 /* ================================
@@ -180,7 +184,6 @@ export async function fetchInvoiceById(id: string) {
 
     const invoice = data.map((invoice) => ({
       ...invoice,
-      // Convert amount from cents to dollars
       amount: invoice.amount / 100,
     }));
 
@@ -199,13 +202,8 @@ export async function fetchCustomers() {
   noStore();
   try {
     const data = await sql<CustomerField[]>`
-      SELECT
-        id,
-        name
-      FROM customers
-      ORDER BY name ASC
+      SELECT id, name FROM customers ORDER BY name ASC
     `;
-
     return data;
   } catch (err) {
     console.error('Database Error:', err);
@@ -217,22 +215,22 @@ export async function fetchFilteredCustomers(query: string) {
   noStore();
   try {
     const data = await sql<CustomersTableType[]>`
-		SELECT
-		  customers.id,
-		  customers.name,
-		  customers.email,
-		  customers.image_url,
-		  COUNT(invoices.id) AS total_invoices,
-		  SUM(CASE WHEN invoices.status = 'pending' THEN invoices.amount ELSE 0 END) AS total_pending,
-		  SUM(CASE WHEN invoices.status = 'paid' THEN invoices.amount ELSE 0 END) AS total_paid
-		FROM customers
-		LEFT JOIN invoices ON customers.id = invoices.customer_id
-		WHERE
-		  customers.name ILIKE ${`%${query}%`} OR
-        customers.email ILIKE ${`%${query}%`}
-		GROUP BY customers.id, customers.name, customers.email, customers.image_url
-		ORDER BY customers.name ASC
-	  `;
+    SELECT
+      customers.id,
+      customers.name,
+      customers.email,
+      customers.image_url,
+      COUNT(invoices.id) AS total_invoices,
+      SUM(CASE WHEN invoices.status = 'pending' THEN invoices.amount ELSE 0 END) AS total_pending,
+      SUM(CASE WHEN invoices.status = 'paid' THEN invoices.amount ELSE 0 END) AS total_paid
+    FROM customers
+    LEFT JOIN invoices ON customers.id = invoices.customer_id
+    WHERE
+      customers.name ILIKE ${`%${query}%`} OR
+      customers.email ILIKE ${`%${query}%`}
+    GROUP BY customers.id, customers.name, customers.email, customers.image_url
+    ORDER BY customers.name ASC
+    `;
 
     const customers = data.map((customer) => ({
       ...customer,
