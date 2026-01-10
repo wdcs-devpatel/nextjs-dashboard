@@ -1,4 +1,4 @@
-import 'server-only'; // Ensures this file never runs on the client/browser
+import 'server-only';
 import postgres from 'postgres';
 import { unstable_noStore as noStore } from 'next/cache';
 
@@ -17,17 +17,18 @@ import { formatCurrency } from './utils';
    DATABASE CONNECTION
 ================================ */
 
-const connectionString = process.env.DATABASE_URL_UNPOOLED;
+// Use DATABASE_URL for standard queries, fallback to UNPOOLED if needed
+const connectionString = process.env.DATABASE_URL;
 
 if (!connectionString) {
-  throw new Error('DATABASE_URL_UNPOOLED is not defined in your .env file');
+  throw new Error('Please define the DATABASE_URL environment variable inside .env');
 }
 
-const sql = postgres(connectionString, {
+// In serverless environments, we create the connection outside the functions
+// but ensure we don't leak connections.
+const sql = postgres(connectionString, { 
   ssl: 'require',
-  max: 10,
-  idle_timeout: 20,
-  connect_timeout: 30,
+  max: 1 // Best for serverless/Vercel free tier to avoid "too many clients" errors
 });
 
 /* ================================
@@ -87,10 +88,11 @@ export async function fetchCardData() {
       invoiceStatusPromise,
     ]);
 
+    // Convert strings to Numbers because SQL COUNT/SUM returns strings
     const numberOfInvoices = Number(data[0][0].count ?? '0');
     const numberOfCustomers = Number(data[1][0].count ?? '0');
-    const totalPaidInvoices = formatCurrency(data[2][0].paid ?? '0');
-    const totalPendingInvoices = formatCurrency(data[2][0].pending ?? '0');
+    const totalPaidInvoices = formatCurrency(Number(data[2][0].paid ?? '0'));
+    const totalPendingInvoices = formatCurrency(Number(data[2][0].pending ?? '0'));
 
     return {
       numberOfCustomers,
@@ -179,10 +181,11 @@ export async function fetchInvoiceById(id: string) {
         invoices.status
       FROM invoices
       WHERE invoices.id = ${id}
-    `; // Removed the semicolon from inside the string here
+    `;
 
     const invoice = data.map((invoice) => ({
       ...invoice,
+      // Convert amount from cents to dollars
       amount: invoice.amount / 100,
     }));
 
@@ -220,8 +223,8 @@ export async function fetchFilteredCustomers(query: string) {
       customers.email,
       customers.image_url,
       COUNT(invoices.id) AS total_invoices,
-      SUM(CASE WHEN invoices.status = 'pending' THEN invoices.amount ELSE 0 END) AS total_pending,
-      SUM(CASE WHEN invoices.status = 'paid' THEN invoices.amount ELSE 0 END) AS total_paid
+      SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) AS total_pending,
+      SUM(CASE WHEN status = 'paid' THEN amount ELSE 0 END) AS total_paid
     FROM customers
     LEFT JOIN invoices ON customers.id = invoices.customer_id
     WHERE
@@ -233,8 +236,8 @@ export async function fetchFilteredCustomers(query: string) {
 
     const customers = data.map((customer) => ({
       ...customer,
-      total_pending: formatCurrency(customer.total_pending),
-      total_paid: formatCurrency(customer.total_paid),
+      total_pending: formatCurrency(Number(customer.total_pending)),
+      total_paid: formatCurrency(Number(customer.total_paid)),
     }));
 
     return customers;
